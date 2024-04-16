@@ -7,6 +7,23 @@ int empty(struct queue_t * q) {
 	return (q->size == 0);
 }
 
+// pthread_mutex_t queue_lock;  // Declare a mutex lock
+
+// Function to enqueue an element
+// void enqueue(void* element) {
+//   pthread_mutex_lock(&queue_lock);  // Acquire the lock
+//   // Add element to the queue (implementation specific)
+//   pthread_mutex_unlock(&queue_lock); // Release the lock
+// }
+
+// // Function to dequeue an element
+// void* dequeue() {
+//   pthread_mutex_lock(&queue_lock);  // Acquire the lock
+//   void* element = remove_from_queue(); // Remove element (implementation specific)
+//   pthread_mutex_unlock(&queue_lock); // Release the lock
+//   return element;
+// }
+
 void enqueue(struct queue_t * q, struct pcb_t * proc) {
     // If the queue is full, return an error or handle it as per your requirements
     if (q->size >= MAX_QUEUE_SIZE) {
