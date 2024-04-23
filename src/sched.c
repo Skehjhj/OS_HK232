@@ -27,8 +27,10 @@ void init_scheduler(void) {
 #ifdef MLQ_SCHED
 	int i ;
 
-	for (i = 0; i < MAX_PRIO; i ++)
+	for (i = 0; i < MAX_PRIO; i ++){
 		mlq_ready_queue[i].size = 0;
+		mlq_ready_queue[i].slot = MAX_PRIO - i;
+	}
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
@@ -43,18 +45,60 @@ void init_scheduler(void) {
  *  State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
 struct pcb_t * get_mlq_proc(void) {
+	static int curr_prio = 0;
 	struct pcb_t * proc = NULL;
-	pthread_mutex_lock(&queue_lock);
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
-	 */
-	for(int i = 0; i < MAX_PRIO; i++){
-		if(mlq_ready_queue[i].size > 0) {
-			proc = dequeue(&mlq_ready_queue[i]);
-			break;
+	 * */
+
+
+	
+	//usleep(10);
+	//Kiểm tra ready queue hiện tại có còn slot không
+    if (mlq_ready_queue[curr_prio].slot > 0) {
+		// Nếu ready queue hiện tại không rỗng
+		if(!empty(&mlq_ready_queue[curr_prio])){ 
+			pthread_mutex_lock(&queue_lock);
+        	proc = dequeue(&mlq_ready_queue[curr_prio]);
+			mlq_ready_queue[curr_prio].slot--;
+			pthread_mutex_unlock(&queue_lock);
 		}
-	}
-	pthread_mutex_unlock(&queue_lock);
+		// Nếu ready queue hiện tại rỗng
+		else{
+			//Tìm ready queue tiếp theo không rỗng và vẫn còn slot
+			pthread_mutex_lock(&queue_lock);
+			int temp = (curr_prio + 1) % MAX_PRIO;
+			while (temp != curr_prio) {
+				if (!empty(&mlq_ready_queue[temp]) && mlq_ready_queue[temp].slot > 0) {
+					curr_prio = temp; // Chuyển sang queue khác
+					proc = dequeue(&mlq_ready_queue[curr_prio]);
+					mlq_ready_queue[temp].slot--;
+					break;
+				} else {
+					temp = (temp + 1) % MAX_PRIO;
+				}
+			}
+			pthread_mutex_unlock(&queue_lock);
+		}
+    } else {
+        // ready_queue hiện tại đã sử dụng hết slot, reset giá trị và chuyển sang queue tiếp theo
+        mlq_ready_queue[curr_prio].slot = MAX_PRIO - curr_prio;
+
+        //Tìm ready queue tiếp theo không rỗng và vẫn còn slot
+		pthread_mutex_lock(&queue_lock);
+        int temp = (curr_prio + 1) % MAX_PRIO;
+        while (temp != curr_prio) {
+            if (!empty(&mlq_ready_queue[temp]) && mlq_ready_queue[temp].slot > 0) {
+                curr_prio = temp; // Chuyển sang queue khác
+                proc = dequeue(&mlq_ready_queue[curr_prio]);
+				mlq_ready_queue[curr_prio].slot--;
+                break;
+            } else {
+                temp = (temp + 1) % MAX_PRIO;
+            }
+        }
+		pthread_mutex_unlock(&queue_lock);
+    }
 	return proc;	
 }
 
