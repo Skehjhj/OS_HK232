@@ -86,7 +86,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
               struct vm_rg_struct *ret_rg)// return mapped region, the real mapped fp
 {                                         // no guarantee all given pages are mapped
   //uint32_t * pte = malloc(sizeof(uint32_t));
-  struct framephy_struct *fpit = frames;
+  struct framephy_struct *fpit;
   //int  fpn;
   int pgit = 0; //page index
   int pgn = PAGING_PGN(addr);
