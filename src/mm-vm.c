@@ -313,15 +313,19 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
  */
 int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
 {
+  pthread_mutex_lock(&vmlock);
   struct vm_rg_struct *currg = get_symrg_byid(caller->mm, rgid);
 
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 
-  if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
+  if(currg == NULL || cur_vma == NULL)
+  { /* Invalid memory identify */
+    pthread_mutex_unlock(&vmlock);
 	  return -1;
-
+  }
   pg_getval(caller->mm, currg->rg_start + offset, data, caller);
 
+  pthread_mutex_unlock(&vmlock);
   return 0;
 }
 
@@ -358,15 +362,19 @@ int pgread(
  */
 int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
 {
+  pthread_mutex_lock(&vmlock);
   struct vm_rg_struct *currg = get_symrg_byid(caller->mm, rgid);
 
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   
-  if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
+  if(currg == NULL || cur_vma == NULL)
+  { /* Invalid memory identify */
+    pthread_mutex_unlock(&vmlock);
 	  return -1;
-
+  }
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
 
+  pthread_mutex_unlock(&vmlock);
   return 0;
 }
 
@@ -396,6 +404,7 @@ int pgwrite(
  */
 int free_pcb_memph(struct pcb_t *caller)
 {
+  pthread_mutex_lock(&vmlock);
   int pagenum, fpn;
   uint32_t pte;
 
@@ -414,6 +423,7 @@ int free_pcb_memph(struct pcb_t *caller)
     }
   }
 
+  pthread_mutex_unlock(&vmlock);
   return 0;
 }
 
